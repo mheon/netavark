@@ -133,6 +133,7 @@ cd docs
 %dir %{_libexecdir}/podman
 %{_libexecdir}/podman/%{name}*
 %{_mandir}/man1/%{name}.1*
+%{_mandir}/man5/%{name}-firewalld-forwarding.5*
 %{_unitdir}/%{name}-dhcp-proxy.service
 %{_unitdir}/%{name}-dhcp-proxy.socket
 %{_unitdir}/%{name}-firewalld-reload.service

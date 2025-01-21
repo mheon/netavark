@@ -706,3 +706,51 @@ pub fn rm_firewalld_if_possible(net: &ipnet::IpNet) {
         ),
     };
 }
+
+/// Check whether firewalld's StrictForwardPorts setting is enabled.
+/// Returns false if firewalld is not installed, not running, or there is any
+/// error with the process.
+pub fn is_firewalld_strict_forward_enabled() -> bool {
+    let conn = match Connection::system() {
+        Ok(conn) => conn,
+        Err(_) => return false,
+    };
+    if !is_firewalld_running(&conn) {
+        return false;
+    }
+
+    // Fetch current running config
+    match conn.call_method(
+        Some("org.fedoraproject.FirewallD1"),
+        "/org/fedoraproject/FirewallD1/config",
+        Some("org.freedesktop.DBus.Properties"),
+        "Get",
+        &("org.fedoraproject.FirewallD1.config", "StrictForwardPorts"),
+    ) {
+        Ok(b) => b.body().deserialize().unwrap_or(false),
+        Err(_) => {
+            // Assume any error is related to the property not existing
+            // (As it will not on older firewalld versions)
+            // Return false given that.
+            false
+        }
+    }
+}
+
+/// Check if firewalld's StrictForwardPorts setting is enabled and, if so,
+/// whether the container has requested any ports be forwarded. If both are true
+/// return a helpful error that port forwarding cannot be performed.
+pub fn check_can_forward_ports(setup_portfw: &PortForwardConfig) -> NetavarkResult<()> {
+    if is_firewalld_strict_forward_enabled() {
+        let mut portfw_used = setup_portfw.dns_port != 53;
+        if let Some(ports) = setup_portfw.port_mappings {
+            portfw_used = portfw_used || !ports.is_empty();
+        }
+        if portfw_used {
+            return Err(NetavarkError::msg(
+                "Port forwarding not possible as firewalld StrictForwardPorts enabled",
+            ));
+        }
+    }
+    Ok(())
+}

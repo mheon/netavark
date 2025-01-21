@@ -558,6 +558,8 @@ impl firewall::FirewallDriver for Nftables {
         &self,
         setup_portfw: internal_types::PortForwardConfig,
     ) -> NetavarkResult<()> {
+        firewalld::check_can_forward_ports(&setup_portfw)?;
+
         let mut batch = Batch::new();
 
         let existing_rules = get_netavark_rules()?;

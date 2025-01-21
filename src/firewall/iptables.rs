@@ -112,6 +112,8 @@ impl firewall::FirewallDriver for IptablesDriver {
     }
 
     fn setup_port_forward(&self, setup_portfw: PortForwardConfig) -> NetavarkResult<()> {
+        firewalld::check_can_forward_ports(&setup_portfw)?;
+
         if let Some(v4) = setup_portfw.container_ip_v4 {
             let subnet_v4 = match setup_portfw.subnet_v4 {
                 Some(s) => s,
